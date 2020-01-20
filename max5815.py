@@ -66,8 +66,7 @@ class max5815(I2C_device):
 
 
     def __init__(self, addr1, addr0,
-                gateway,
-                i2c_mux,
+                gateway=None,
                 package="TSSOP", 
                 n_bits=12, 
                 name="MAX5815 DAC",
@@ -81,13 +80,12 @@ class max5815(I2C_device):
         assert n_bits in [8,10,12]
         self.n_bits = n_bits
         self.lsb    = None
-        self.i2c_mux = i2c_mux
         # slave address of the device is hardwired
         if package == "TSSOP":
             self.address = self.ADDR_PRE_TSSOP + self.ADDR_TSSOP[(addr1,addr0)]
         if package == "WLP":
             self.address = self.ADDR_PRE_WLP + self.ADDR_WLP[addr0]
-        super().__init__(addr=self.address, gateway=gateway, name=name)
+        super().__init__(addr=self.address, name=name, gateway=gateway)
         self.emulate = emulate
 
     def voltage2code(self, voltage):

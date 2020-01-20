@@ -55,7 +55,11 @@ class I2C_device(object):  # object is needed to be compatible with Florian's py
             self.gateway.write_then_read( numtx=len(l_tx), numrx=0, txdata=l_tx)
 
     def read(self, reg, ndata, return_bytes=False):
-        """ I2C master stops the read, therefore the number of bytes to be read has to be knonw by the master. """
+        """ I2C master stops the read, therefore the number of bytes to be read has to be knonw by the master. 
+            :param reg: int; represents the 8bit register address in the I2C chip
+            :param ndata: int; number of bytes to read out
+            :param return_bytes=False; whether to return python's 'bytes' type
+        """
         logger.debug("Read from I2C_ADDR=%s(%s); REG=%s;" %(hex(self.addr), hex((self.addr<<1)+1), hex(reg) ))
         if self.emulate:
             rtn = 0
@@ -69,5 +73,5 @@ class I2C_device(object):  # object is needed to be compatible with Florian's py
             else:
                 return int.from_bytes(rtn, byteorder='big') #bigendian
         else: # return int
-            logging.debug("Return type: %r" % type(rtn))
+            # logging.debug("Return type: %r" % type(rtn))
             return rtn

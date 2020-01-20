@@ -1,6 +1,6 @@
 from i2c import I2C_device
-
-print(type(I2C_device))
+import logging
+logger = logging.getLogger(__name__)
 
 class pca9542a(I2C_device):
     """ Class for PCA9542A type I2C multiplexer 
@@ -41,6 +41,7 @@ class pca9542a(I2C_device):
         if channel in [0,1]:
             assert self.enable in [0,1]
             # self.write(reg = (self.enable << 2) + channel, data=0, ndata=0)
+            logger.debug(f"I2C_subchannel={channel}")
             self.gateway.command(self.addr, (self.enable << 2) + channel)
             self.subchannel == channel
 

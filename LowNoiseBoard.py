@@ -4,7 +4,7 @@ DO_EMULATE = False
 import i2c, pyBP, random, logging, sys
 from functools import partial,wraps
 # importing from the chip modules
-from max5815 import max5815, dac
+from max5815 import max5815
 from pca9542a import pca9542a
 from mcp466x import mcp466x
 from mcp23x08 import mcp23008
@@ -12,6 +12,7 @@ from gpio import *
 from rheostat import rheostat
 from ldo import ldo
 from current_source import current_source
+from dac import dac
 
 ########################################################################
 # Class definition
@@ -137,41 +138,33 @@ class LNBoard():
 
     class max5815_ch(max5815):
         def __init__(self, func, *args, **kwargs):
-            # super(max5815,self).__init__(*args, **kwargs)
             super().__init__(*args, **kwargs)
             self.deco_func = func
-            logger.debug("Decorator function: %s" % self.deco_func.__name__)
-            
-            # add i2c channel change 
-            for attr_name in dir(self):
-                attr = getattr(self, attr_name)
-                if callable(attr) and attr_name[0:2] != "__" and attr != self.deco_func:
-                    setattr(self, attr_name, self.deco_func(attr))
+            logger.debug("Decorator function for %s: %s" % (type(self).__name__,self.deco_func.__name__))
+
+            func_list = ['write','read']
+            for i in func_list:
+                setattr(self, i, self.deco_func(getattr(self, i)))
 
     class mcp23008_ch(mcp23008):
         def __init__(self, func, *args, **kwargs):
-            # super(mcp23008,self).__init__(*args, **kwargs)
             super().__init__(*args, **kwargs)
             self.deco_func = func
-            logger.debug(self.deco_func)
+            logger.debug("Decorator function for %s: %s" % (type(self).__name__,self.deco_func.__name__))
             
-            # add i2c channel change 
-            for attr_name in dir(self):
-                attr = getattr(self, attr_name)
-                if callable(attr) and attr_name[0:2] != "__" and attr != self.deco_func:
-                    setattr(self, attr_name, self.deco_func(attr))
+            func_list = ['write','read']
+            for i in func_list:
+                setattr(self, i, self.deco_func(getattr(self, i)))
 
     class mcp466x_ch(mcp466x):
         def __init__(self, func, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.deco_func = func
-            logger.debug(self.deco_func)
+            logger.debug("Decorator function for %s: %s" % (type(self).__name__,self.deco_func.__name__))
             
-            # add i2c channel change 
-            for attr_name in dir(self):
-                attr = getattr(self, attr_name)
-                if callable(attr) and attr_name[0:2] != "__" and attr != self.deco_func:
-                    setattr(self, attr_name, self.deco_func(attr))
+            func_list = ['write','read']
+            for i in func_list:
+                setattr(self, i, self.deco_func(getattr(self, i)))
 
 
 ############################################################################

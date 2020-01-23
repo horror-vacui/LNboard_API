@@ -34,14 +34,14 @@ class max5815(I2C_device):
                 2.048:  0b10,
                 4.096:  0b11
             }
-    D_POWER = {
+    D_CHANNEL = {
                 'A':    0b0000,
                 'B':    0b0001,
                 'C':    0b0010,
                 'D':    0b0011,
                 'ALL':  0b1000
             }
-    D_CHANNEL = {
+    D_POWER = {
                 'A':    0b0001,
                 'B':    0b0010,
                 'C':    0b0100,
@@ -150,16 +150,17 @@ class max5815(I2C_device):
     def set_code(self, code, channel):
         assert channel in self.D_CHANNEL.keys(), "Invalid DAC channel number. Valid values are " +  ", ".join(self.D_CHANNEL.keys())
         assert 0 <= code <= (1<<self.n_bits), "DAC code=%#x is out of range. It supposed to be a 12 bit number." % (code)
+        # self.write(reg = self.CMD_CODE_LOAD + self.D_CHANNEL[channel], data = (code << 4), ndata = 2)
         self.write(reg = self.CMD_CODE_LOAD + self.D_CHANNEL[channel], data = (code << 4), ndata = 2)
 
     def get_code(self, channel):
         assert channel in self.D_CHANNEL.keys(), "Invalid DAC channel number. Valid values are: " + ", ".join(self.D_CHANNEL.keys())
         if self.emulate:
-            logger.debug("!!!EMULATION MODE!!!")
+            logger.info("!!!EMULATION MODE!!!")
             return random.randint(0,(1<<self.n_bits)-1)
         else:
-            # my_reg = self.CMD_CODE + (1<<self.D_CHANNEL[channel])
-            my_reg = self.CMD_LOAD + (1<<self.D_CHANNEL[channel])
+            my_reg = self.CMD_CODE + self.D_CHANNEL[channel]
+            # my_reg = self.CMD_LOAD + self.D_CHANNEL[channel]
             logger.debug("REG: 0x{:02x} for ch={} code".format(my_reg,channel))
             my_code = self.read(reg = my_reg, ndata = 2) >>4
             logger.debug("CH{} CODE=0x{:02x}".format(channel,my_code))
@@ -194,5 +195,39 @@ class max5815(I2C_device):
         else:
             # The low (2.) byte contains the infor
             pwr = self.read(reg = self.CMD_POWER, ndata = 2) & 0x0f
-            return next(key for key,value in self.D_CHANNEL.items if value == pwr)
+            return next(key for key,value in self.D_POWER.items if value == pwr)
         
+class dac():
+    """ One virtual dac for every max5815 channel.
+        The DACs in a chip are sharing the same reference,
+        and thus they are not completely independent.
+
+        Therefore the reference setting should happen 
+        at the chip level, and not in this class. 
+        """
+
+    def __init__(self, device, channel):
+        # Probably more general dac commands could have been developed and used.
+        # even the variable name indicates that this code was developed for max5815.
+        assert channel in ['A','B','C','D']
+        self.device  = device
+        self.channel = channel
+
+    def set_code(self, code):
+        self.device.set_code(code = code, channel = self.channel)
+
+    def set_voltage(self, voltage):
+        self.device.set_voltage(voltage = voltage, channel = self.channel)
+
+    def get_voltage(self):
+        return self.device.get_voltage(self.channel)
+
+    def get_code(self):
+        return self.device.get_code(channel = self.channel)
+
+    def set_power(self, pd_mode='NORMAL'):
+        # TODO: rewrite the function in max5815.py, to allow channel-wise 
+        # setting of the power mode. 
+        self.device.set_power(dac = self.channel, pd_mode=pd_mode)
+
+

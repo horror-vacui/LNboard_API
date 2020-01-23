@@ -7,13 +7,13 @@ class I2C_device(object):  # object is needed to be compatible with Florian's py
             addr:   I2C address. The 7bit address is given.
     """
 
-    def __init__(self, gateway, addr, name="", emulate=True):
+    def __init__(self, gateway, addr, name="", emulate=False):
         assert addr < pow(2,8), "Address should be only 7 bit. Specified addres: %s" % hex(addr)
         self.addr = addr # We store the 8bit version, i.e. the Write address.
         self.name = name  # optional. Not sure I will use this
         self.gateway = gateway # I2C gateway, i.e. Buspirate instance
         self.emulate = emulate
-        logger.debug("I2C device instance created with name= " + name + ";   and I2C address= %s (%s)" % (hex(addr), hex(addr << 1))  )
+        logger.info("I2C device instance created with name= " + name + ";   and I2C address= %s (%s)" % (hex(addr), hex(addr << 1))  )
         
 
     def get_bit(reg,n_bit):
@@ -40,6 +40,7 @@ class I2C_device(object):  # object is needed to be compatible with Florian's py
         
         If the chip has only one register and therefore it has no register address, set data=0 and ndata=0, 
         and give the intended register value to the "reg" argument. """
+        assert 0<=reg<=0xff, f"Invalid register addres: f{hex(reg)}. Valid range is (0x00, 0xff)"
         if self.emulate: 
             pass
         else:
@@ -48,7 +49,7 @@ class I2C_device(object):  # object is needed to be compatible with Florian's py
             if ndata > 0:
                 l_data = self.int_to_n_byte(data, ndata)
                 l_tx += l_data
-                logger.debug("Write to I2C_ADDR=%s(%s); REG=%s the DATA=0x.%s;" %(hex(self.addr), hex(self.addr<<1), hex(reg), ".".join(['{:02x}'.format(i) for i in l_data]) ))
+                logger.debug(f"Write to I2C_ADDR={format(self.addr,'#02x')}({format((self.addr<<1),'#02x')}); REG=0x{format(reg,'02x')} the DATA=0x%s;" %("".join(['{:02x}'.format(i) for i in l_data]) ))
             else:
                 logger.debug("Write to I2C_ADDR=%s(%s)'s only register; DATA=%s;" %(hex(self.addr), hex(self.addr<<1), hex(reg) ))
 
@@ -56,22 +57,28 @@ class I2C_device(object):  # object is needed to be compatible with Florian's py
 
     def read(self, reg, ndata, return_bytes=False):
         """ I2C master stops the read, therefore the number of bytes to be read has to be knonw by the master. 
-            :param reg: int; represents the 8bit register address in the I2C chip
-            :param ndata: int; number of bytes to read out
-            :param return_bytes=False; whether to return python's 'bytes' type
+
+            Parameters
+            ----------
+            reg:    int
+                    represents the 8bit register address in the I2C chipA
+            ndata:  int 
+                    number of bytes to read out
+            return_bytes: int, optional
+                    whether to return python's 'bytes' type. Default=False
+
+            Returns
+            -------
+            int:    Read data
         """
-        logger.debug("Read from I2C_ADDR=%s(%s); REG=%s;" %(hex(self.addr), hex((self.addr<<1)+1), hex(reg) ))
         if self.emulate:
             rtn = 0
         else:
             self.gateway.write_then_read(numtx=2, numrx=0, txdata=[(self.addr<<1), reg]) 
             rtn = self.gateway.write_then_read(numtx=1, numrx=ndata, txdata=[(self.addr<<1)+1]) 
             
-        if isinstance(rtn, bytes):
-            if return_bytes:
-                return  rtn
-            else:
-                return int.from_bytes(rtn, byteorder='big') #bigendian
-        else: # return int
-            # logging.debug("Return type: %r" % type(rtn))
-            return rtn
+        if isinstance(rtn, bytes) and not return_bytes:
+           rtn = int.from_bytes(rtn, byteorder='big') #bigendian
+
+        logger.debug("Read from I2C_ADDR=0x{0:02x}(0x{1:02x}); REG=0x{2:02x}; DATA=".format(self.addr, (self.addr<<1)+1, reg, rtn) + hex(rtn))
+        return rtn

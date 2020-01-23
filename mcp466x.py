@@ -3,8 +3,8 @@ import logging
 
 
 class mcp466x(I2C_device):
-    """ 7/8-Bit Single/Dual I 2 C Digital POT with Nonvolatile Memory 
-   
+    """ Class for controlling the 7/8-Bit Single/Dual I2C Digital 
+        POT with Nonvolatile Memory.
 
         Device types: 
           0th bit: {1:"potentiometer", 2: "rheostat"}
@@ -83,7 +83,17 @@ class mcp466x(I2C_device):
         self.Rw_typ     = 75 # Ohm; wiper resistance
 
     def res2code(self, res):
-        """ Calculate the code required for a given resistance """
+        """ Calculate the code required for a given resistance 
+        
+            Parameters
+            ----------
+            res:        float
+                        The desired resistor value in Ohms
+                        
+            Returns
+            -------
+            int:        The code belonging to the desired resistance value
+            """
         assert 0 < res <= self.fullscale, "The desired resistor value, %r, is out of range. The valid range is between 0 and %r" % (res, self.fullscale)
         return round( (res-self.Rw_typ)/self.res_step)
 
@@ -93,41 +103,80 @@ class mcp466x(I2C_device):
         return self.res_step*code + self.Rw_typ
 
     def set_wiper(self, code, channel=0):
-        """ Write the intended code to the rheostat register. """
+        """ Write the intended code to the rheostat register. 
+        
+        Parameters
+        ----------
+        code:       int, (0,0x100)
+                    code to be written into the control register
+        channel:    int, (0,1)
+                    Potentiometer channel. Default=0
+                    """
         assert channel in self.L_CHANNEL, "Invalid channel number. Valid channel numbers are " + ", ".join([str(i) for i in self.L_CHANNEL])
         assert 0<= code <= (1 << self.n_bits), "code has to be n_bits+1 long"  # Maybe put it into a "try:" and cut the higher bits
         
         # The command byte includes the 2 MSBs of the data as well!
-        code_MSBs = code >> 8
+        code_MSBs = code >> 8  # 2 bits
         code_LSBs = code & 0x00ff
+        nibble_reg_addr = (self.R_WIPER + channel) << 4
         self.write(   
-                reg   = ( (self.R_WIPER + channel + self.C_WRITE)<<8 ) + code_MSBs,
+                reg   = nibble_reg_addr + (0b00 <<2)  + code_MSBs,
                 data  = code_LSBs,
                 ndata = 1 
                 )
     
     def get_wiper(self, channel=0):
-        """ Read the wiper register. Since there are 9 data bits, it will read two bytes. """
-        return self.read(reg=(self.R_WIPER+channel + self.C_READ), ndata=2)
+        """ Read the wiper register. Since there are 9 data bits, it will read two bytes. 
+
+            Parameters
+            ----------
+            channel:    int, optional
+                        Rhestat/Potentiometer channel: 0 or 1. Default=0
+        
+            Returns
+            -------
+            int: 9bit value between 0 and 0x100
+            """
+        nibble_reg_addr = (self.R_WIPER + channel) << 4 
+        return self.read(reg=nibble_reg_addr + self.C_READ, ndata=2) & 0x1ff
 
     def get_register(self, reg):
-        """ Read given register. Returns 2 bytes """
+        """ General register read. 
+        
+            Parameters
+            ----------
+            reg:    int
+                    Register address
+                    
+            Returns
+            -------
+            int:    2 bytes 
+            """
         return self.read(reg,2)
 
-    def get_last_register(self):
-        """ See Fig 7-4 in the datasheet. Read from Last Memory Address Accessed. Writes one and returns two bytes. i
-            
-            Not clear how to implement it with Florian's i2c code: no register is defined.
-        """
-        return self.read()
-
     def set_res(self, res, channel=0):
-        """ Set the desired resistance value at the wiper """
+        """ Set the desired resistance value at the wiper 
+        
+            Parameters
+            ----------
+            res:        float
+                        desired resistor value in Ohms
+            channel:    int, [0,1]
+            """
         assert channel in self.L_CHANNEL
         self.set_wiper(self.res2code(res), channel)
 
     def get_res(self, channel=0):
-        """ Get the actual reistance at the wiper """
+        """ Get the actual reistance at the wiper 
+        
+            Parameters
+            ----------
+            channel:    int, [0,1]
+            
+            Returns
+            -------
+            float:      resistance value in Ohms
+            """
         assert channel in self.L_CHANNEL
         return self.code2res( self.get_wiper(channel) )
 
@@ -140,19 +189,30 @@ class mcp466x(I2C_device):
             If multiple Increment Commands are received
             after the value has reached 100h (or 80h), the value will
             not be incremented further.
+
+            Paramters
+            ---------
+            channel:    int, [0,1]
         """
         assert channel in self.L_CHANNEL
+        nibble_reg_addr = (self.R_WIPER + channel) << 4
         self.write(
-                reg = self.R_WIPER + (channel << 4)  + self.C_INC,
+                reg =  nibble_reg_addr + self.C_INC,
                 data = 0,
                 ndata = 0
-                ) # Again: not clear if it will work with the i2c_tx_handler....
+                ) 
 
     def dec_wiper(self, channel=0):
-        """ Decrement the wiper setting. For more information see the docstring of inc_wiper function. """
+        """ Decrement the wiper setting. For more information see the docstring of inc_wiper function. 
+        
+            Paramters
+            ---------
+            channel:    int, [0,1]
+        """
         assert channel in self.L_CHANNEL
+        nibble_reg_addr = (self.R_WIPER + channel) << 4
         self.write(
-                reg   = self.R_WIPER + (channel << 4)  + self.C_DEC,
+                reg   = nibble_reg_addr  + self.C_DEC,
                 data  = 0,
                 ndata = 0)
 

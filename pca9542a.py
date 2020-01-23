@@ -24,6 +24,11 @@ class pca9542a(I2C_device):
         self.subchannel = None
         self.__call__   = self.set_channel
 
+    def __call__(self, channel):
+        """ Default (callable) behaviour is to set the channel to the desired
+        subchannel """
+        self.set_channel(channel)
+
     def read(self, return_bytes=False):
         """ redefine I2C.read() because we have no register address, and we 
         return always 1 byte. """
@@ -41,7 +46,7 @@ class pca9542a(I2C_device):
         if channel in [0,1]:
             assert self.enable in [0,1]
             # self.write(reg = (self.enable << 2) + channel, data=0, ndata=0)
-            logger.debug(f"I2C_subchannel={channel}")
+            logger.info(f"I2C_subchannel={channel}")
             self.gateway.command(self.addr, (self.enable << 2) + channel)
             self.subchannel == channel
 

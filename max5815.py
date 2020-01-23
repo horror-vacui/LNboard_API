@@ -197,37 +197,3 @@ class max5815(I2C_device):
             pwr = self.read(reg = self.CMD_POWER, ndata = 2) & 0x0f
             return next(key for key,value in self.D_POWER.items if value == pwr)
         
-class dac():
-    """ One virtual dac for every max5815 channel.
-        The DACs in a chip are sharing the same reference,
-        and thus they are not completely independent.
-
-        Therefore the reference setting should happen 
-        at the chip level, and not in this class. 
-        """
-
-    def __init__(self, device, channel):
-        # Probably more general dac commands could have been developed and used.
-        # even the variable name indicates that this code was developed for max5815.
-        assert channel in ['A','B','C','D']
-        self.device  = device
-        self.channel = channel
-
-    def set_code(self, code):
-        self.device.set_code(code = code, channel = self.channel)
-
-    def set_voltage(self, voltage):
-        self.device.set_voltage(voltage = voltage, channel = self.channel)
-
-    def get_voltage(self):
-        return self.device.get_voltage(self.channel)
-
-    def get_code(self):
-        return self.device.get_code(channel = self.channel)
-
-    def set_power(self, pd_mode='NORMAL'):
-        # TODO: rewrite the function in max5815.py, to allow channel-wise 
-        # setting of the power mode. 
-        self.device.set_power(dac = self.channel, pd_mode=pd_mode)
-
-

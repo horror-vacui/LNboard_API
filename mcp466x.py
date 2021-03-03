@@ -94,7 +94,7 @@ class mcp466x(I2C_device):
             -------
             int:        The code belonging to the desired resistance value
             """
-        assert 0 < res <= self.fullscale, "The desired resistor value, %r, is out of range. The valid range is between 0 and %r" % (res, self.fullscale)
+        assert 0 <= res <= self.fullscale, "The desired resistor value, %r, is out of range. The valid range is between 0 and %r" % (res, self.fullscale)
         return round( (res-self.Rw_typ)/self.res_step)
 
     def code2res(self, code):

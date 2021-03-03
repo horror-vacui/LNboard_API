@@ -5,4 +5,13 @@ func_arg_partial.py
 func_arg.py           
 git_change_notes.txt  
 test.py
+set__call.py
+set__call_2.py
+utils.py
+LowNoiseBoard_bck.py
+LowNoiseBoard_c0.py
+LowNoiseBoard_class_issue.py
+decor_class_bck.py
+decor_class_solution.py
+decor_class_solution_bck.py
 */
